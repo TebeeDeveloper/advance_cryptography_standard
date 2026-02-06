@@ -4,6 +4,7 @@ import time
 import shlex
 from tbcryptography import TBAEMS 
 from colorama import Fore, Back, Style, init
+import base64
 
 # Khởi tạo colorama
 init(autoreset=True)
@@ -113,54 +114,69 @@ class Ter:
         return True
 
     def encrypt_text(self, text: str) -> str:
+        """Mã hóa và trả về chuỗi Base64 (vì Tebee-kun muốn text dùng B64)"""
+        if not text: return "" # Guard Clause
+        
         nonce = os.urandom(16)
         data = bytearray(text.encode('utf-8'))
         self.aems.encrypt(data, nonce) 
-        # Kết quả: Nonce(32 hex chars) + DataHex
-        return f"{nonce.hex()}{data.hex()}"
-
-    def decrypt_text(self, encrypted_str: str) -> str:
-        # Guard Clause cho độ dài (ít nhất phải có nonce 16 bytes = 32 hex chars)
-        if len(encrypted_str) < 32:
-            raise ValueError("Data too short to contain a valid Nonce!\n")
-            
-        n_hex = encrypted_str[:32]
-        d_hex = encrypted_str[32:]
-        nonce = bytes.fromhex(n_hex)
-        data = bytearray(bytes.fromhex(d_hex))
         
-        # Gọi hàm decrypt từ thư viện của Tebee
-        decrypted_bytes = self.aems.decrypt(data, nonce)
-        return decrypted_bytes.decode('utf-8')
+        # Kết hợp Nonce + Data trước khi bọc Base64
+        combined = nonce + data
+        return base64.b64encode(combined).decode('utf-8')
 
-    # ... (Các hàm file giữ nguyên logic nhưng bọc thêm màu sắc cho đẹp)
+    def decrypt_text(self, b64_str: str) -> str:
+        """Giải mã từ chuỗi Base64"""
+        if not b64_str: return "" # Guard Clause
+        
+        try:
+            raw_data = base64.b64decode(b64_str)
+            if len(raw_data) < 16: # Guard Clause: Phải có ít nhất 16 bytes nonce
+                raise ValueError("Dữ liệu Base64 không hợp lệ!")
+
+            nonce = raw_data[:16]
+            encrypted_payload = bytearray(raw_data[16:])
+            
+            decrypted_bytes = self.aems.decrypt(encrypted_payload, nonce)
+            return decrypted_bytes.decode('utf-8')
+        except Exception as e:
+            return f"Lỗi rồi Tebee-kun ơi: {str(e)}"
+
     def encrypt_file_with_magic(self, input_path: str, output_path: str) -> None:
+        """Mã hóa file và lưu dưới dạng Base85 (Nở 25% thôi nhé!)"""
         try:
             with open(input_path, 'r', encoding='utf-8') as f_in, \
                  open(output_path, 'wb') as f_out:
                 for line in f_in:
-                    if not line: continue
+                    if not line.strip(): continue # Guard Clause: bỏ qua dòng trống
+                    
                     nonce = os.urandom(16)
-                    f_out.write(nonce)
                     data = bytearray(line.encode('utf-8'))
                     self.aems.encrypt(data, nonce)
-                    f_out.write(len(data).to_bytes(2, 'little'))
-                    f_out.write(data)
+                    
+                    # Gom Nonce + Data lại rồi nén Base85
+                    # Thêm dấu xuống dòng để dễ phân biệt các line khi decrypt
+                    b85_line = base64.b85encode(nonce + data) + b'\n'
+                    f_out.write(b85_line)
         except Exception as e:
             print(f"{Fore.RED}[File Error]: {e}")
 
     def decrypt_file_with_magic(self, input_path: str, output_path: str) -> None:
+        """Giải mã file từ định dạng Base85"""
         try:
             with open(input_path, 'rb') as f_in, \
                  open(output_path, 'w', encoding='utf-8') as f_out:
-                while True:
-                    nonce = f_in.read(16)
-                    if len(nonce) < 16: break
-                    len_bytes = f_in.read(2)
-                    if not len_bytes: break
-                    length = int.from_bytes(len_bytes, 'little')
-                    encrypted_data = f_in.read(length)
-                    decrypted = self.aems.decrypt(bytearray(encrypted_data), nonce)
+                for line in f_in:
+                    line = line.strip()
+                    if not line: continue # Guard Clause
+                    
+                    raw_data = base64.b85decode(line)
+                    if len(raw_data) < 16: continue # Guard Clause
+                    
+                    nonce = raw_data[:16]
+                    encrypted_data = bytearray(raw_data[16:])
+                    
+                    decrypted = self.aems.decrypt(encrypted_data, nonce)
                     f_out.write(decrypted.decode('utf-8'))
         except Exception as e:
             print(f"{Fore.RED}[File Error]: {e}")
