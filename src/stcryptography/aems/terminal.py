@@ -75,6 +75,8 @@ class Ter:
                                 print(f"{Fore.YELLOW}[System]: File saved: {Fore.WHITE}{out_path}\n")
                             else:
                                 print(f"{Fore.RED}[Error]: File Not Found: {filepath}\n")
+                        else:
+                            print(f"{Fore.YELLOW}[System]: Unknown Command. Type 'help'\n")
 
                     case "decrypt":
                         if not self._check_ready(): continue
@@ -97,6 +99,8 @@ class Ter:
                                 print(f"{Fore.YELLOW}[System]: File restored to: {Fore.WHITE}{out_path}\n")
                             else:
                                 print(f"{Fore.RED}[Error]: File Not Found\n")
+                        else:
+                            print(f"{Fore.YELLOW}[System]: Unknown Command. Type 'help'\n")
 
                     case _:
                         print(f"{Fore.YELLOW}[System]: Unknown Command. Type 'help'\n")
