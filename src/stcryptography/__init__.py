@@ -1,4 +1,4 @@
-from .aems.aems import AEMS
+from .aems.aems import AEMSCipher
 
 __author__ = "Tebee _ 9/4"
 __version__ = "0.0.1"
