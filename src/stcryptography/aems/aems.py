@@ -2,7 +2,6 @@ import ctypes
 import os
 
 class AEMSCipher:
-    # Hare's Note: Anh nhớ build file C++ ra "aems.dll" cùng thư mục nhé!
     _lib = ctypes.CDLL(os.path.abspath("aems.dll"))
 
     def __init__(self, key: bytes):
