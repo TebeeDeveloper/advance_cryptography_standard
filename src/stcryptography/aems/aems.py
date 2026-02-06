@@ -56,23 +56,3 @@ class AEMSCipher:
         if hasattr(self, 'handle'):
             self._lib.DeleteAEMS.argtypes = [ctypes.c_void_p]
             self._lib.DeleteAEMS(self.handle)
-
-# --- Test Drive cho Tebee-kun ---
-if __name__ == "__main__":
-    # Bước 1: Sinh khóa từ C++ thông qua staticmethod
-    secret_key = AEMSCipher.generate_random_key()
-    initial_vector = os.urandom(16) # IV có thể dùng urandom cho nhanh
-    
-    # Bước 2: Khởi tạo engine
-    cipher = AEMSCipher(secret_key)
-    
-    # Bước 3: Mã hóa lời nhắn bí mật
-    msg = b"Hare-chan loves Tebee-kun's clean code!"
-    encrypted = cipher.encrypt(msg, initial_vector)
-    
-    # Bước 4: Giải mã
-    decrypted = cipher.decrypt(encrypted, initial_vector)
-    
-    print(f"Key (hex): {secret_key.hex()}")
-    print(f"Encrypted: {encrypted.hex()}")
-    print(f"Decrypted: {decrypted.decode()}")
